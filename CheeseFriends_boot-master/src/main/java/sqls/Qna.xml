@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mul.cam.a.dao.QnaDao">
+<!--  수업 자료 목록 가져오기 -->
+<select id="qnaLearningList" parameterType="mul.cam.a.dto.ListParam" resultType="mul.cam.a.dto.QnaDto">
+	select *
+	from
+		(select row_number()over(order by ref desc, step asc) as rnum,
+			seq, subject, ref, step, depth, title, writer, content, regdate
+		 from qna
+		 where 1=1 
+		 <if test="choice != null and choice != '' and search != null and search != '' ">
+		 	<if test="choice == 'title'">
+		 		and title like concat('%', #{search}, '%') and del=0
+		 	</if>
+		 	<if test="choice == 'content'">
+		 		and content like concat('%', #{search}, '%') and del=0
+		 	</if>
+		 	<if test="choice == 'writer'">
+		 		and id=#{search} and del=0
+		 	</if>
+		 </if>		 
+		 order by ref desc, step asc) a
+	where rnum between ${start} and 10
+</select>
+
+<!-- 글의 총수 -->
+<select id="getAllQna" parameterType="mul.cam.a.dto.ListParam" resultType="java.lang.Integer">
+	select ifnull(count(*), 0)
+	from qna
+</select>
+
+<!-- 수업 질문 글쓰기 (원글 글쓰기 )-->
+<insert id="writeQna" parameterType="mul.cam.a.dto.QnaDto">
+INSERT INTO qna(subject, title, ref, step, depth, writer, content, regdate)
+VALUES(#{subject}, #{title},
+(SELECT ifnull(max(ref), 0) +1 from qna q),
+#{step} + 1, #{depth}, #{writer}, #{content}, now())
+</insert>
+
+<!-- 수업 질문 상세 -->
+<select id="getLearningQna" parameterType="Integer" resultType="mul.cam.a.dto.QnaDto">
+	SELECT seq, subject, title, writer, content, regdate
+	FROM qna
+	WHERE seq=#{seq}
+</select>
+
+
+<!-- 답글 작성 -->
+<update id="answerUpdate" parameterType="mul.cam.a.dto.QnaDto">
+UPDATE qna
+SET step = step + 1
+WHERE ref = (SELECT ref FROM (select ref from qna a where seq=#{seq}) A)
+  AND step > (SELECT step FROM (select step from qna b where seq=#{seq}) B)
+</update>
+
+<!-- 답글 추가 -->
+<insert id="answerInsert" parameterType="mul.cam.a.dto.QnaDto">
+	INSERT INTO qna (subject, ref, step, depth, title, writer, content, regdate)
+	values(#{subject}, (select ref from qna a where seq=#{seq}),
+				  (select step from qna b where seq=#{seq})+1,
+				  (select depth from qna c where seq=#{seq})+1,
+			#{title}, #{writer}, #{content}, now())
+</insert>
+</mapper>

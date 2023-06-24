@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	
+<mapper namespace="mul.cam.a.dao.TimeTableDao">
+	<!-- 강의시간 리스트 -->
+	<select id="subTimeList" parameterType="String" resultType="mul.cam.a.dto.TimeTableDto">
+		SELECT 	T.SEQ, T.SUB_CODE, S.SUB_NAME,
+				T.EDU_CODE, T.CLASS_GRADE, T.SUB_START, T.SUB_DAY, T.SUB_START_TIME, T.SUB_END_TIME,
+				T.EDUCATOR_NAME, I.NAME
+		FROM
+		TIMETABLE T INNER JOIN SUBJECT S
+			ON T.SUB_CODE = S.SUB_CODE
+				INNER JOIN USER I
+					ON T.EDUCATOR_NAME = I.ID
+		WHERE T.EDUCATOR_NAME=#{educatorName}
+	</select>
+	<!-- 강의시간입력 -->
+	<insert id="timeTableAdd" parameterType="mul.cam.a.dto.TimeTableDto">
+	<selectKey keyProperty="eduCode" order="BEFORE" resultType="String"> SELECT EDU_CODE FROM USEREDU WHERE USER_ID=#{educatorName} </selectKey>
+		INSERT INTO TIMETABLE(EDU_CODE, SUB_CODE, CLASS_GRADE, SUB_START, SUB_DAY, SUB_START_TIME, SUB_END_TIME, EDUCATOR_NAME)
+		VALUES(#{eduCode}, #{subCode}, #{classGrade}, #{subStart}, #{subDay}, #{subStartTime}, #{subEndTime}, #{educatorName} )
+	</insert>
+	<!-- 강의시간중복체크 -->
+	<select id="timeDuplicateCheck" parameterType="mul.cam.a.dto.TimeTableDto" resultType="Integer">
+		SELECT COUNT(*)
+		FROM
+		TIMETABLE
+		WHERE SUB_CODE=#{subCode} AND SUB_DAY=#{subDay} AND SUB_START_TIME=#{subStartTime} AND SUB_END_TIME=#{subEndTime}
+	</select>
+	<!-- 강의시간 업데이트 -->
+	<update id="timeTableUpdate" parameterType="mul.cam.a.dto.TimeTableDto">
+		UPDATE TIMETABLE
+		SET SUB_DAY=#{subDay}, SUB_START=#{subStart}, SUB_START_TIME=#{subStartTime}, SUB_END_TIME=#{subEndTime}
+		WHERE SEQ=#{seq}
+	</update>
+	<!-- 강의시간 삭제 -->
+	<delete id="timeTableDelete" parameterType="Integer">
+		DELETE FROM TIMETABLE
+		WHERE SEQ=#{seq}
+	</delete>
+</mapper>

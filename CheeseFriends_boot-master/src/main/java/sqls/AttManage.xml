@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AttManage">
+<select id="getAttendanceList" resultMap="attendanceResultMap">
+    SELECT attendanceTime, status FROM attendance
+    WHERE studentID = #{studentID}
+    AND sub_code = #{subCode}
+    AND edu_code = #{eduCode}
+</select>
+
+  <resultMap id="attendanceResultMap" type="mul.cam.a.dto.CFR_Attendance">
+    <result column="attendanceTime" property="attendanceTime"/>
+    <result column="status" property="status"/>
+  </resultMap>
+
+ <resultMap id="subjectResultMap" type="mul.cam.a.dto.SubjectDto">
+        <result property="subCode" column="sub_code"/>
+        <result property="subName" column="sub_name"/>
+    </resultMap>
+
+    <select id="getSubjectsByUserId" resultMap="subjectResultMap" parameterType="string">
+		SELECT s.sub_code, s.sub_name, s.edu_code
+        FROM usersubject us
+        JOIN subject s ON us.sub_code = s.sub_code
+        WHERE us.user_id = #{userId}
+    </select>
+    
+     <resultMap id="eduResultMap" type="mul.cam.a.dto.AttendanceEdu">
+        <result property="userId" column="user_id"/>
+        <result property="eduCode" column="edu_code"/>
+                <result property="eduName" column="edu_name"/>
+    </resultMap>
+
+    <select id="getEduByUserId" resultMap="eduResultMap" parameterType="string">
+		SELECT us.user_id, s.edu_code, s.edu_name
+        FROM useredu us
+        JOIN education s ON us.edu_code = s.edu_code
+        WHERE us.user_id = #{userId};
+    </select>
+    
+<resultMap id="attendanceMap" type="mul.cam.a.dto.CFR_Attendance">
+  <id column="attendanceID" property="attendanceID"/>
+  <result column="studentID" property="studentID"/>
+  <result column="name" property="name"/>
+  <result column="sub_code" property="subCode"/>
+  <result column="attendanceTime" property="attendanceTime"/>
+  <result column="status" property="status"/>
+  <result column="edu_code" property="eduCode"/>
+  <result column="comment" property="comment"/>
+</resultMap>
+
+<select id="getAttendanceBySubjectCode" resultMap="attendanceMap">
+  select a.*, u.name
+  from attendance a
+  inner join user u on a.studentID = u.id
+  where a.sub_code = #{subCode}
+</select>
+
+<update id="updateAttendanceStatus" parameterType="java.util.Map">
+  UPDATE attendance SET status = #{status} WHERE attendanceID = #{attendanceID}
+</update>
+
+<update id="updateAttendancecomment" parameterType="java.util.Map">
+    UPDATE attendance SET comment = #{comment} WHERE attendanceID = #{attendanceID}
+</update>
+
+ <insert id="updateUserSMSCheck" parameterType="mul.cam.a.dto.AttendanceSMSCheck">
+    INSERT INTO usersmscheck (userId, minCheck) 
+     VALUES (#{userId},#{minCheck})
+    ON DUPLICATE KEY UPDATE minCheck = #{minCheck}
+  </insert> 
+
+  
+    <insert id="updateUserSMSCheckAbsent" parameterType="mul.cam.a.dto.AttendanceSMSCheck">
+    INSERT INTO userabsentalarm (userId, absentAlarm) 
+    VALUES (#{userId},#{absentAlarm})
+      ON DUPLICATE KEY UPDATE absentAlarm = #{absentAlarm}
+  </insert>
+  
+  <select id="getAlarm" resultMap="getAlarmMap">
+    SELECT * FROM usersmscheck WHERE userId = #{userId}
+</select>
+
+  <resultMap id="getAlarmMap" type="mul.cam.a.dto.AttendanceSMSCheck">
+    <result column="userId" property="userId"/>
+    <result column="minCheck" property="minCheck"/>
+  </resultMap>
+  
+  
+    <select id="getAbsentAlarm" resultMap="getAbsentAlarmMap">
+    SELECT * FROM userabsentalarm WHERE userId = #{userId}
+</select>
+
+  <resultMap id="getAbsentAlarmMap" type="mul.cam.a.dto.AttendanceSMSCheck">
+    <result column="userId" property="userId"/>
+    <result column="absentAlarm" property="absentAlarm"/>
+  </resultMap>
+  
+      <select id="getPhoneNumber" parameterType="string" resultType="string">
+        SELECT phone
+        FROM user
+        WHERE id = #{userId}
+    </select>
+    
+     <select id="findUserMinCheckTrue" resultType="String">
+        SELECT userId FROM usersmscheck WHERE minCheck = true
+    </select>
+    
+      <select id="findSubCodesByUserId" resultType="String">
+        SELECT sub_code FROM usersubject WHERE user_id=#{userId}
+    </select>
+    
+      <select id="findSubStartTimeBySubCode" resultType="String">
+        SELECT sub_start_time FROM timetable WHERE sub_code=#{subCode} AND sub_day=#{displayName}
+    </select>
+          <select id="findSubName" resultType="String">
+        SELECT sub_name FROM subject WHERE sub_code=#{subCode}
+    </select>
+        
+     <select id="findUserAbsentAlarmTrue" resultType="Boolean">
+        SELECT absentAlarm FROM userabsentalarm WHERE userId = #{studentId}
+     </select>
+     
+
+        <select id="getStudentId" resultType="String">
+        SELECT studentid FROM userparents WHERE parentsid=#{userId}
+    </select>
+    
+     <resultMap id="TeachersubjectResultMap" type="mul.cam.a.dto.SubjectDto">
+        <result property="subCode" column="sub_code"/>
+        <result property="subName" column="sub_name"/>
+    </resultMap>
+
+    <select id="getTeacherSubjectsByUserId" resultMap="TeachersubjectResultMap" parameterType="string">
+		SELECT sub_code, sub_name, edu_code
+        FROM subject
+        WHERE educator_name = #{userId}
+    </select>
+    
+</mapper>

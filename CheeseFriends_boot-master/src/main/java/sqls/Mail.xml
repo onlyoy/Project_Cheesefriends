@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="mul.cam.a.dao.MailDao">
+<!-- 메일 보내기 -->
+<!-- 받을 사람 검색 -->
+<select id="mailreceiverid" parameterType="String" resultType="mul.cam.a.dto.UserDto">
+	SELECT ID, name
+	FROM USER
+	where name like concat(#{name}, '%')
+</select>
+
+<!-- 받을 사람 추가 -->
+<select id="mailreceiveradd" parameterType="String" resultType="mul.cam.a.dto.UserDto">
+	SELECT ID, name
+	FROM USER
+	where id=#{id}
+</select>
+
+<!-- 메일 보내기 -->
+<insert id="mailsend" parameterType="mul.cam.a.dto.MailDto">
+	insert into mail(sender, receiver, title, content, wdate, readcount, filename, newfilename, receivedel, educode, senddel, subcode)
+	values(#{sender}, #{receiver}, #{title}, #{content}, now(), 0, #{filename}, #{newfilename}, 0, 0, 0, 0)
+</insert>
+
+<!-- 단체 메일 -->
+<!-- 교육기관 검색 -->
+<select id="eduselect" parameterType="String" resultType="mul.cam.a.dto.EducationDto">
+	select distinct e.edu_name, e.edu_code 
+	from usersubject u inner join subject s 
+		on u.sub_code = s.sub_code 
+		inner join education e 
+			on e.edu_code = s.edu_code 
+	where user_id=#{id}
+</select>
+
+<!-- 과목 검색 -->
+<select id="subselect" parameterType="mul.cam.a.dto.EducationDto" resultType="mul.cam.a.dto.TestEduDto">
+	select distinct e.edu_name, e.edu_code, s.sub_code, s.sub_name  
+	from usersubject u inner join subject s 
+		on u.sub_code = s.sub_code 
+		inner join education e 
+			on e.edu_code = s.edu_code 
+	where user_id=#{id}
+	and e.edu_code=#{eduCode}
+</select>
+
+<!-- 수강생 검색 교육기관, 과목 둘다선택 -->
+<select id="userlist" parameterType="mul.cam.a.dto.TestEduDto" resultType="mul.cam.a.dto.UserDto">
+	select distinct us.id, us.name
+	from user us inner join usersubject u
+	 on us.id = u.user_id 
+		inner join subject s 
+		on u.sub_code = s.sub_code 
+			inner join education e 
+			on e.edu_code = s.edu_code 
+	where e.edu_code=#{educode}
+	and us.id != #{id}
+	and s.sub_code=#{subcode}
+</select>
+
+<!-- 수강생 검색 교육기관, 과목 둘다선택 -->
+<select id="userlisttwo" parameterType="mul.cam.a.dto.TestEduDto" resultType="mul.cam.a.dto.UserDto">
+	select distinct us.id, us.name
+	from user us inner join usersubject u
+	 on us.id = u.user_id 
+		inner join subject s 
+		on u.sub_code = s.sub_code 
+			inner join education e 
+			on e.edu_code = s.edu_code 
+	where e.edu_code=#{educode}
+	and us.id != #{id}
+</select>
+
+<!-- 받은 메일 -->
+<!-- 받은 메일 리스트 -->
+<select id="receivemaillist" parameterType="mul.cam.a.dto.MailParam"
+	resultType="mul.cam.a.dto.MailDto">
+	select seq, sender, receiver, title, content, wdate, readcount, filename, newfilename, receivedel, educode, senddel, subcode
+	from mail
+	where 1=1 
+	and receiver = #{receiver}
+	and receivedel = 0
+	<if test="choice != null and choice != '' and search != null and search != '' ">
+	 	<if test="choice == 'title'">
+	 		and title like concat('%', #{search}, '%')
+	 	</if>
+	 	<if test="choice == 'content'">
+	 		and content like concat('%', #{search}, '%')
+	 	</if>
+	 	<if test="choice == 'sender'">
+	 		and sender=#{search}
+	 	</if>
+	</if>
+	order by wdate desc
+<!-- 	where rnum between ${start} and ${end} -->
+</select>
+
+<!-- 받은 메일 상세보기 -->
+<select id="getmail" parameterType="Integer" resultType="mul.cam.a.dto.MailDto">
+	select seq, sender, receiver, title, content, wdate, readcount, filename, newfilename, receivedel, educode, senddel, subcode
+	from mail
+	where seq = #{seq}
+</select>
+
+<update id="readcountup"  parameterType="Integer">
+	update mail
+	set readcount = 1
+	where seq=#{seq}
+</update>
+
+<!-- 받은 메일의 총수 -->
+<select id="getallmail" parameterType="mul.cam.a.dto.MailParam" resultType="Integer">
+	select ifnull(count(*), 0)
+	from mail
+	where 1=1
+	and receiver = #{receiver}
+	and receivedel = 0
+	<if test="choice != null and choice != '' and search != null and search != '' ">
+	 	<if test="choice == 'title'">
+	 		and title like concat('%', #{search}, '%')
+	 	</if>
+	 	<if test="choice == 'content'">
+	 		and content like concat('%', #{search}, '%')
+	 	</if>
+	 	<if test="choice == 'sender'">
+	 		and sender=#{search}
+	 	</if>
+	</if>
+</select>
+
+<!-- 받은 메일 삭제하기 -->
+<update id="receivedeleteMail" parameterType="Integer">
+	update mail
+	set receivedel = 1
+	where seq=#{seq}
+</update>
+
+<!-- 보낸 메일 -->
+<!-- 보낸 메일 리스트 -->
+<select id="sendmaillist" parameterType="mul.cam.a.dto.MailParam"
+	resultType="mul.cam.a.dto.MailDto">
+	select seq, sender, receiver, title, content, wdate, readcount, filename, newfilename, receivedel, educode, senddel, subcode
+	from mail
+	where 1=1 
+	and sender = #{sender}
+	and senddel = 0
+	<if test="choice != null and choice != '' and search != null and search != '' ">
+	 	<if test="choice == 'title'">
+	 		and title like concat('%', #{search}, '%')
+	 	</if>
+	 	<if test="choice == 'content'">
+	 		and content like concat('%', #{search}, '%')
+	 	</if>
+	 	<if test="choice == 'receiver'">
+	 		and receiver=#{search}
+	 	</if>
+	</if>
+	order by wdate desc
+<!-- 	where rnum between ${start} and ${end} -->
+</select>
+
+<!-- 보낸 메일의 총수 -->
+<select id="getsendallmail" parameterType="mul.cam.a.dto.MailParam" resultType="Integer">
+	select ifnull(count(*), 0)
+	from mail
+	where 1=1
+	and sender = #{sender}
+	and senddel = 0
+	<if test="choice != null and choice != '' and search != null and search != '' ">
+	 	<if test="choice == 'title'">
+	 		and title like concat('%', #{search}, '%')
+	 	</if>
+	 	<if test="choice == 'content'">
+	 		and content like concat('%', #{search}, '%')
+	 	</if>
+ 		<if test="choice == 'receiver'">
+	 		and receiver=#{search}
+	 	</if>
+	</if>
+</select>
+
+<!-- 보낸 메일 삭제하기 -->
+<update id="senddeleteMail" parameterType="Integer">
+	update mail
+	set senddel = 1
+	where seq=#{seq}
+</update>
+
+</mapper>

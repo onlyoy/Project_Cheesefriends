@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	
+
+
+
+<mapper namespace="mul.cam.a.dao.UserDao">
+
+<select id="idcheck" parameterType="String" resultType="String">
+	SELECT ID
+	FROM USER
+	WHERE ID=#{id}
+</select>
+
+<select id="subjectlist" parameterType="String" resultType="mul.cam.a.dto.TestEduDto">
+	select sub_name, sub_code, edu_code
+	from subject
+	where edu_code=#{edu_code}
+</select>
+
+<select id="eduname" parameterType="String" resultType="String">
+	select edu_name
+	from education
+	where edu_code=#{edu_code}
+</select>
+
+<select id="subname" parameterType="String" resultType="String">
+	select sub_name
+	from subject
+	where sub_code=#{sub_code}
+</select>
+
+<insert id="adduser" parameterType="mul.cam.a.dto.UserDto">
+	insert into user(id, password, name, gender, email, birth, address, facename, newfacename, phone, phone_public, jointype, auth, breakaway, regidate, joinid)
+	values(#{id}, #{password}, #{name}, #{gender}, #{email}, #{birth}, #{address}, #{facename}, '0', #{phone}, '0', #{jointype}, #{auth}, '0', now(), #{joinid})
+</insert>
+
+<insert id="addusersubject" parameterType="mul.cam.a.dto.MysubjectDto">
+	insert into tempusersubject(id, subcode, state, start_date, end_date)
+	values(#{id}, #{subcode},'approving' ,null ,null)
+</insert> 
+
+<select id="educodematching" parameterType="String" resultType="String">
+	select edu_code
+	from subject
+	where sub_code=#{sub_code}
+</select>
+
+<select id="idmatching" parameterType="String" resultType="mul.cam.a.dto.UserDto">
+	select id, name, auth
+	from user
+	where id=#{studentid}
+</select>
+
+<select id="studentidmatching" parameterType="String" resultType="String">
+	select parentsid
+	from userparents
+	where studentid=#{studentid}
+</select>
+
+<insert id="adduserparents" parameterType="mul.cam.a.dto.UserparentsDto">
+	insert into userparents(studentid, parentsid)
+	values(#{studentid}, #{parentsid})
+</insert>
+
+<select id="edusearch" parameterType="String" resultType="mul.cam.a.dto.EducationDto">
+	select edu_code, edu_name
+	from education
+	where edu_name like concat('%', #{edu_name}, '%')
+</select>
+
+<insert id="adduseredu" parameterType="mul.cam.a.dto.TestEduDto">
+	insert into useredu(user_id, edu_code)
+	values(#{id}, #{educode})
+</insert>
+
+<select id="addusereducheck" parameterType="mul.cam.a.dto.TestEduDto" resultType="mul.cam.a.dto.EducationDto">
+	select *
+	from useredu
+	where user_id=#{id}
+	and edu_code=#{educode}
+</select>
+
+<select id="idsearch" parameterType="mul.cam.a.dto.UserDto" resultType="mul.cam.a.dto.UserDto">
+	SELECT ID, regidate
+	FROM USER
+	WHERE name=#{name}
+	and phone=#{phone}
+</select>
+
+<select id="idchecktwo" parameterType="mul.cam.a.dto.UserDto"  resultType="String">
+	SELECT ID
+	FROM USER
+	WHERE ID=#{id}
+	and phone=#{phone}
+</select>
+
+<update id="updatepassword" parameterType="mul.cam.a.dto.UserDto">
+	update user
+	set password=#{password}
+	where id=#{id}
+</update>
+
+<select id="login" parameterType="mul.cam.a.dto.UserDto" resultType="mul.cam.a.dto.UserDto">
+	select id, password, name, gender, email, birth, address, facename, newfacename, phone, phone_public, jointype, auth, breakaway, regidate
+	from user
+	where id=#{id} and password=#{password}
+</select>
+
+<update id="changeuser" parameterType="mul.cam.a.dto.UserDto">
+	update user
+	set password=#{password}, name=#{name}, gender=#{gender}, email=#{email}, address=#{address}, 
+		facename=#{facename}, phone=#{phone}
+	where id=#{id}
+</update>
+
+	<!-- 학생 마이페이지 -->
+<!-- 마이 페이지 성적표 확인 -->
+<select id="gradecheck" parameterType="mul.cam.a.dto.MailParam" resultType="mul.cam.a.dto.SearchGradeDto">
+<!-- 	select g.student_id, e.edu_name, g.sub_code, g.sub_name, g.student_grade
+	from grade g inner join education e 
+		on g.edu_code = e.edu_code 
+	where student_id=#{studentid}; -->
+			
+	select sub_code, edu_code, edu_name, sub_name, class_grade, student_id, student_grade, student_ranks, sub_total
+	from
+	(
+		select
+		  	 G.SUB_CODE, G.EDU_CODE, G.SUB_NAME, I.NAME, G.CLASS_GRADE, G.STUDENT_ID, G.STUDENT_GRADE, e.edu_name,
+		    (DENSE_RANK() OVER (PARTITION BY SUB_CODE ORDER BY STUDENT_GRADE DESC))as student_ranks	,  
+		    K.sub_total
+		FROM GRADE G 
+		INNER JOIN SUBJECT S
+		ON G.SUB_CODE = S.SUB_CODE
+		inner join education e 
+		on s.edu_code = e.edu_code
+		INNER JOIN USER I
+		ON G.STUDENT_ID = I.ID 
+		inner join ( 
+			select 
+				SUB_CODE,
+				COUNT( SUB_CODE ) as sub_total 
+			FROM GRADE
+		group by SUB_CODE 
+		) K 
+		on G.SUB_CODE = K.SUB_CODE
+	) as A
+	where 1=1 
+	and STUDENT_ID=#{receiver}
+	<if test="choice != null and choice != '' and search != null and search != '' ">
+	 	<if test="choice == 'eduname'">
+	 		and edu_name like concat('%', #{search}, '%')
+	 	</if>
+	 	<if test="choice == 'subject'">
+	 		and sub_name like concat('%', #{search}, '%')
+	 	</if>
+	</if>
+</select>
+
+<!-- 마이 페이지 수강중인학습 확인 -->
+<select id="subjectcheck" parameterType="mul.cam.a.dto.MailParam" resultType="mul.cam.a.dto.MysubjectDto">
+	select t.id, s.sub_code, e.edu_name, s.sub_name, s.educator_name, t.state, t.start_date, t.end_date
+	from tempusersubject t left join usersubject u 
+		on  t.id = u.user_id 
+		and t.subcode  = u.sub_code 
+		left join subject s 
+		on t.subcode = s.sub_code 
+		left join education e 
+		on s.edu_code = e.edu_code 
+	where id=#{receiver}
+	<if test="choice != null and choice != '' and search != null and search != '' ">
+	 	<if test="choice == 'eduname'">
+	 		and e.edu_name like concat('%', #{search}, '%')
+	 	</if>
+	 	<if test="choice == 'subject'">
+	 		and s.sub_name like concat('%', #{search}, '%')
+	 	</if>
+	</if>
+</select>
+
+<!-- 학습탈퇴 신청 -->
+<update id="quitsubject" parameterType="mul.cam.a.dto.MysubjectDto">
+	update tempusersubject
+	set state='quiting'
+	where id=#{id}
+	and subcode=#{subcode}
+</update>
+
+<!-- 학습탈퇴 취소 -->
+<update id="quitcancel" parameterType="mul.cam.a.dto.MysubjectDto">
+	update tempusersubject
+	set state='approved'
+	where id=#{id}
+	and subcode=#{subcode}
+</update>
+
+<!-- 수강상태 체크 -->
+<select id="approvedcheck" parameterType="mul.cam.a.dto.MysubjectDto" resultType="String">
+	select state
+	from tempusersubject
+	where id=#{id}
+	and subcode=#{subcode}
+</select>
+
+<!-- 수강 신청 -->
+<insert id="approving" parameterType="mul.cam.a.dto.MysubjectDto">
+	insert into tempusersubject(id, subcode, state, start_date, end_date)
+	values(#{id}, #{subcode},'approving' ,null ,null)
+</insert>
+
+<!-- 탈퇴한 학습 재 수강 신청 -->
+<update id="changeapproving" parameterType="mul.cam.a.dto.MysubjectDto">
+	update tempusersubject
+	set state='approving'
+	where id=#{id}
+	and subcode=#{subcode}
+</update>
+
+<!-- 학부모랑 연결된 자녀 아이디 확인 -->
+<select id="parentsidmatching" parameterType="String" resultType="mul.cam.a.dto.UserparentsDto">
+	select p.studentid, u.name 
+	from userparents p inner join user u
+		on p.studentid = u.id
+	where parentsid=#{parentsid}
+</select>
+
+<!-- 교사 마이 페이지 - 학교 select -->
+<select id="eduselect" parameterType="String" resultType="mul.cam.a.dto.MysubjectDto">
+	select distinct e.edu_name, e.edu_code 
+	from subject s inner join education e 
+	on s.edu_code = e.edu_code 
+	where educator_name = #{id};
+</select>
+
+<!-- 교사 마이 페이지 - 과목 select -->
+<select id="subselect" parameterType="mul.cam.a.dto.MysubjectDto" resultType="mul.cam.a.dto.MysubjectDto">
+	select sub_code, sub_name 
+	from subject s 
+	where educator_name = #{id}
+	and edu_code = #{educode};
+</select>
+
+<!-- 교사 마이 페이지 - 수강생 리스트 -->
+<select id="studentlist" parameterType="mul.cam.a.dto.MailParam" resultType="mul.cam.a.dto.MypageStudentDto">
+	select t.id, u.name, up.parentsid, s.sub_name, s.sub_code, t.start_date, t.end_date, t.state
+	from tempusersubject t inner join user u
+		on t.id = u.id
+		left join userparents up
+		on t.id = up.studentid 
+		inner join subject s
+		on t.subcode = s.sub_code 
+	where 1=1
+	and t.subcode = #{subcode}
+	<if test="choice != null and choice != '' and search != null and search != '' ">
+	 	<if test="choice == 'name'">
+	 		and u.name like concat('%', #{search}, '%')
+	 	</if>
+	 	<if test="choice == 'id'">
+	 		and t.id=#{search}
+	 	</if>
+	</if>
+</select>
+
+<!-- 수강생 수강 신청 승인 -->
+<insert id="makeapproved" parameterType="mul.cam.a.dto.MysubjectDto">
+	insert into usersubject(user_id, sub_code, start_date, end_date)
+	values(#{id}, #{subcode}, now(), null)
+</insert>
+
+<update id="changeapproved" parameterType="mul.cam.a.dto.MysubjectDto">
+	update tempusersubject
+	set state='approved', start_date=now()
+	where id=#{id}
+	and subcode=#{subcode}
+</update>
+
+<!-- 수강생 탈퇴 신청 승인 -->
+<delete id="deletestudent" parameterType="mul.cam.a.dto.MysubjectDto">
+	delete from usersubject
+	where user_id=#{id}
+	and sub_code=#{subcode}
+</delete>
+
+<update id="changequited" parameterType="mul.cam.a.dto.MysubjectDto">
+	update tempusersubject
+	set state='quited', end_date=now()
+	where id=#{id}
+	and subcode=#{subcode}
+</update>
+
+<!-- 해당 social로 가입된 아이디가 있는지 체크해서 있으면 로그인 없으면 회원가입 -->
+<select id="socialLogincheck" parameterType="mul.cam.a.dto.UserDto" resultType="mul.cam.a.dto.UserDto">
+	select *
+	from user
+	where joinid=#{joinid}
+	and jointype=#{jointype}
+</select>
+
+<!-- 회원탈퇴 학생 -->
+<select id="breakcheck" parameterType="String" resultType="mul.cam.a.dto.MysubjectDto">
+	select *
+	from usersubject
+	where user_id=#{id}
+</select>
+
+<delete id="breakoutuser" parameterType="String">
+	delete from user
+	where id=#{id}
+</delete>
+
+<delete id="breakoutuseredu" parameterType="String">
+	delete from useredu
+	where user_id=#{id}
+</delete>
+
+<delete id="breakouttempusersubject" parameterType="String">
+	delete from tempusersubject
+	where id=#{id}
+</delete>
+
+<delete id="breakoutstudentuserparents" parameterType="String">
+	delete from userparents
+	where studentid=#{id}
+</delete>
+
+<!-- 학부모 -->
+<delete id="breakoutparentsuserparents" parameterType="String">
+	delete from userparents
+	where parentsid=#{id}
+</delete>
+
+<!-- 교사 -->
+<!-- 담당과목 잔여 체크 -->
+<select id="breakchecksubject" parameterType="String" resultType="mul.cam.a.dto.MysubjectDto">
+	select *
+	from subject
+	where educator_name=#{id}
+</select>
+
+<!-- 해당 번호로 가입된 계정이 있는지 체크 -->
+<select id="phonecheck" parameterType="String" resultType="String">
+	SELECT ID
+	FROM USER
+	WHERE phone=#{phone}
+</select>
+
+
+<!-- 학생 마이 페이지 - 과목 select -->
+<select id="stuselect" parameterType="mul.cam.a.dto.MysubjectDto" resultType="mul.cam.a.dto.MysubjectDto">
+	select sub_code, sub_name 
+	from subject s 
+	where educator_name = #{id}
+	and edu_code = #{educode};
+</select>
+
+
+<!-- 수강생 수강 신청 승인 시 grade 입력 -->
+<insert id="setStudentGrade" parameterType="mul.cam.a.dto.GradeDto">
+	insert into grade(sub_code, edu_code, sub_name, class_grade, student_id, student_grade, student_ranks, sub_total)
+	values(#{subCode}, #{eduCode}, #{subName}, #{classGrade}, #{studentId}, 0, 0, 0)
+</insert>
+
+<!-- 과목을 듣는 학생 데이터 -->
+<select id="subStudentList" parameterType="mul.cam.a.dto.MysubjectDto" resultType="mul.cam.a.dto.GradeDto">
+	SELECT  S.SUB_CODE, S.EDU_CODE, 
+			S.SUB_NAME, S.CLASS_GRADE,
+	        T.ID
+	FROM
+	SUBJECT S INNER JOIN tempusersubject T
+		ON S.SUB_CODE = T.SUBCODE
+	WHERE S.EDUCATOR_NAME=#{educatorname} AND T.SUBCODE=#{subcode} AND T.ID=#{id};
+</select>
+
+<!-- 유저 남은 과목 있는지 체크 -->
+<!-- breakcheck 실행 -->
+
+<!-- 유저 남은 과목 없을시 삭제 -->
+<delete id="deleteuseredu" parameterType="mul.cam.a.dto.EducationDto">
+	delete from useredu
+	where user_id=#{id}
+	and edu_code=#{eduCode}
+</delete>
+
+
+</mapper>

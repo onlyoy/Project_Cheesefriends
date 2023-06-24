@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="DA">
+
+
+    <select id="getGradesByStudentId" parameterType="string" resultType="mul.cam.a.dto.DataAnalysisDto">
+        
+        <!-- 
+        SELECT *
+        FROM grade
+        WHERE student_id = #{studentId} and edu_code=#{eduCode}
+        -->
+        
+        SELECT 
+    		G1.SUB_NAME, G1.STUDENT_ID, G1.STUDENT_GRADE, I.NAME, G1.studentRanks, G1.SUB_TOTAL 
+		FROM 
+    		(SELECT 
+       		 G.SUB_NAME, G.STUDENT_ID, G.STUDENT_GRADE, 
+        	(ROW_NUMBER() OVER (PARTITION BY G.SUB_CODE ORDER BY STUDENT_GRADE DESC)) AS studentRanks, G.SUB_TOTAL 
+    	FROM GRADE G 
+    	INNER JOIN SUBJECT S ON G.SUB_CODE = S.SUB_CODE 
+   		WHERE G.EDU_CODE = #{eduCode}) AS G1 
+		INNER JOIN USER I ON G1.STUDENT_ID = I.ID 
+		WHERE G1.STUDENT_ID = #{studentId};
+        
+    </select>
+    
+    <resultMap id="AttendanceResultMap" type="mul.cam.a.dto.CFR_Attendance">
+    <result property="attendanceID" column="attendanceID" />
+    <result property="studentID" column="studentID" />
+    <result property="subCode" column="sub_code" />
+    <result property="attendanceTime" column="attendanceTime" />
+    <result property="status" column="status" />
+    <result property="eduCode" column="edu_code" />
+    <result property="comment" column="comment" />
+    <result property="subName" column="sub_name" />
+</resultMap>
+    
+<select id="getAttendanceList" parameterType="string" resultMap="AttendanceResultMap">
+    SELECT att.*, sub.sub_name
+    FROM attendance AS att
+    JOIN subject AS sub ON att.sub_code = sub.sub_code
+    WHERE att.studentID = #{studentId} AND att.edu_code = #{eduCode}
+</select>
+
+<select id="getGradesBySubCode" parameterType="string" resultMap="gradeResultMap">
+
+SELECT
+    G.EDU_CODE, G.SUB_NAME, G.STUDENT_ID, G.STUDENT_GRADE, I.NAME,
+    (ROW_NUMBER() OVER (PARTITION BY G.SUB_CODE ORDER BY STUDENT_GRADE DESC)) as studentRanks,
+    G.SUB_TOTAL
+FROM 
+    GRADE G 
+    INNER JOIN SUBJECT S ON G.SUB_CODE = S.SUB_CODE
+    INNER JOIN USER I ON G.STUDENT_ID = I.ID
+WHERE 
+    G.SUB_CODE=#{subCode};
+
+            
+    </select>
+    
+    <resultMap id="gradeResultMap" type="mul.cam.a.dto.DataAnalysisDto">
+    <result property="studentId" column="STUDENT_ID" />
+    <result property="subName" column="SUB_NAME" />
+    <result property="studentGrade" column="STUDENT_GRADE" />
+    <result property="studentRanks" column="studentRanks" />
+    <result property="subTotal" column="SUB_TOTAL" />
+    <result property="studentName" column="NAME"/>
+</resultMap>
+
+</mapper>

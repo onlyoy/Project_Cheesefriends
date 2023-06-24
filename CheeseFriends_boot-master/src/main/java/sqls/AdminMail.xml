@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mul.cam.a.dao.AdminMailDao">	
+	<!-- 메일용 교육기관리스트 가져오기 -->
+	<select id="getEduMailList" parameterType="mul.cam.a.dto.ListParam" resultType="mul.cam.a.dto.EducationDto">
+		SELECT EDU_CODE, EDU_NAME
+		FROM
+		EDUCATION
+		WHERE 1=1
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+			<if test="choice == 'eduCode'">
+	 			AND EDU_CODE LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'eduName'">
+		 		AND EDU_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		</if>
+		LIMIT #{start}, #{end}
+	</select>
+	<!-- 메일용 교육기관리스트 총 수 -->
+	<select id="getEduMaiAllList" parameterType="mul.cam.a.dto.ListParam" resultType="Integer">
+		SELECT IFNULL(COUNT(*), 0)
+		FROM
+		EDUCATION
+		WHERE 1=1
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+			<if test="choice == 'eduCode'">
+	 			AND EDU_CODE LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'eduName'">
+		 		AND EDU_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		</if>
+	</select>
+	<!-- 메일용 아이디리스트 가져오기 -->
+	<select id="getIdMailList" parameterType="mul.cam.a.dto.ListParam" resultType="mul.cam.a.dto.TeacherUserDto">
+		SELECT E.EDU_CODE, E.EDU_NAME, I.ID, I.NAME
+		FROM
+		EDUCATION E INNER JOIN USEREDU UE
+			ON E.EDU_CODE = UE.EDU_CODE
+				INNER JOIN USER I
+					ON UE.USER_ID = I.ID
+		WHERE 1=1
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+			<if test="choice == 'userId'">
+	        	AND LOWER(I.ID) LIKE CONCAT('%', LOWER(#{search}), '%')
+		    </if>
+		    <if test="choice == 'userName'">
+		        AND LOWER(I.NAME) LIKE CONCAT('%', LOWER(#{search}), '%')
+		    </if>
+		</if>
+		LIMIT #{start}, #{end}
+	</select>
+	<!-- 메일용 아이디리스트 총 수 -->
+	<select id="getIdMailAllList" parameterType="mul.cam.a.dto.ListParam" resultType="Integer">
+		SELECT IFNULL(COUNT(*), 0)
+		FROM
+		EDUCATION E INNER JOIN USEREDU UE
+			ON E.EDU_CODE = UE.EDU_CODE
+				INNER JOIN USER I
+					ON UE.USER_ID = I.ID
+		WHERE 1=1
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+			<if test="choice == 'userId'">
+	 			AND I.ID LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'userName'">
+		 		AND I.NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		</if>
+	</select>
+	<!-- 메일용 교육기관 아이디 가져오기 -->
+	<select id="getEduIdMailList" parameterType="String" resultType="mul.cam.a.dto.TeacherUserDto">
+		SELECT I.ID
+		FROM
+		USEREDU UE INNER JOIN USER I
+			ON UE.USER_ID = I.ID
+		WHERE EDU_CODE=#{eduCode}
+	</select>
+	<!-- 관리자 보낸 메일 리스트 -->
+	<select id="sendMaillist" parameterType="mul.cam.a.dto.MailParam"
+		resultType="mul.cam.a.dto.MailDto">
+		select sender, GROUP_CONCAT(receiver SEPARATOR ',') AS receiver, title, content, wdate, filename, newfilename, educode, senddel, subcode
+		from mail
+		where 1=1 
+		and sender = #{sender}
+		and senddel = 0
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+		 	<if test="choice == 'title'">
+		 		and title like concat('%', #{search}, '%')
+		 	</if>
+		 	<if test="choice == 'content'">
+		 		and content like concat('%', #{search}, '%')
+		 	</if>
+		 	<if test="choice == 'receiver'">
+		 		and receiver=#{search}
+		 	</if>
+		</if>
+		GROUP BY wdate, sender,title, content, wdate, filename, newfilename, educode, senddel, subcode
+		order by wdate desc
+		LIMIT #{start}, #{end}
+	<!-- 	where rnum between ${start} and ${end} -->
+	</select>
+	<!-- 관리자보낸 메일의 총수 -->
+	<select id="getsendAllMail" parameterType="mul.cam.a.dto.MailParam" resultType="Integer">
+		SELECT ifnull(count(*), 0) AS row_count
+		FROM (
+		  SELECT COUNT(*) AS group_count
+		  FROM mail
+		  WHERE sender = "admin" AND senddel = 0
+			<if test="choice != null and choice != '' and search != null and search != '' ">
+			 	<if test="choice == 'title'">
+			 		and title like concat('%', #{search}, '%')
+			 	</if>
+			 	<if test="choice == 'content'">
+			 		and content like concat('%', #{search}, '%')
+			 	</if>
+		 		<if test="choice == 'receiver'">
+			 		and receiver=#{search}
+			 	</if>
+			</if>
+		  GROUP BY wdate
+		) AS group_counts;
+	</select>
+	<!-- 관리자 보낸 메일 디테일 -->
+	<select id="getSendMailDetail" parameterType="String"
+		resultType="mul.cam.a.dto.MailDto">
+		select sender, GROUP_CONCAT(receiver SEPARATOR ',') AS receiver, title, content, wdate, filename, newfilename, receivedel, educode, senddel, subcode
+		from mail
+		where 1=1 
+		and wdate = #{wdate}
+		and senddel = 0
+		GROUP BY wdate, sender,title, content, wdate, filename, newfilename, receivedel, educode, senddel, subcode
+		order by wdate desc
+	<!-- 	where rnum between ${start} and ${end} -->
+	</select>
+	
+	<!-- 관리자 보낸메일 삭제하기 -->
+	<update id="deleteMail" parameterType="String">
+		update mail
+		set senddel = 1
+		where wdate=#{wdate}
+	</update>
+</mapper>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	
+<mapper namespace="mul.cam.a.dao.GradeManageDao">
+	<!-- 교사가 담당하는 과목 목록 -->
+	<select id="subTeacherlist" parameterType="String" resultType="mul.cam.a.dto.SubjectDto">
+		SELECT *
+		FROM SUBJECT
+		WHERE EDUCATOR_NAME=#{educatorName}
+		ORDER BY SUB_NAME ASC;
+	</select>
+	
+	<!-- 과목을 듣는 학생 데이터 -->
+	<select id="subStudentList" parameterType="mul.cam.a.dto.SortParam" resultType="mul.cam.a.dto.GradeDto">
+		SELECT *
+		FROM GRADE
+		WHERE EDUCATOR_NAME=#{educatorName} AND SUB_CODE=#{subCode}
+	</select>
+<!-- 	<select id="subStudentList" parameterType="mul.cam.a.dto.SortParam" resultType="mul.cam.a.dto.GradeDto">
+		SELECT  S.SUB_CODE, S.EDU_CODE, 
+				S.SUB_NAME, S.CLASS_GRADE,
+				US.USER_ID, I.NAME
+		FROM
+		SUBJECT S INNER JOIN USERSUBJECT US
+			ON S.SUB_CODE = US.SUB_CODE
+			 INNER JOIN USER I
+			 	ON US.USER_ID = I.ID
+		WHERE S.EDUCATOR_NAME=#{educatorName} AND US.SUB_CODE=#{subCode}
+	</select> -->
+	<!-- 학생성적 중복검사 -->
+<!-- 	<select id="gradeDuplicate" parameterType="java.util.List" resultType="Integer">
+			SELECT COUNT(*)
+			FROM GRADE
+		<where>
+			<foreach collection="list" item="item" separator=" OR ">
+				SUB_CODE=#{item.subCode} AND STUDENT_ID=#{item.userId}
+			</foreach>
+		</where>
+	</select> -->
+	<!-- 학생성적입력 -->
+<!-- 	<update id="gradeAdd" parameterType="java.util.List">
+	    UPDATE GRADE
+	    SET
+	    <foreach collection="list" item="item" separator=",">
+	        SUB_CODE=#{item.subCode}, EDU_CODE=#{item.eduCode}, SUB_NAME=#{item.subName}, CLASS_GRADE=#{item.classGrade}, STUDENT_ID=#{item.userId}, STUDENT_GRADE=#{item.studentGrade},
+	        0,
+	        (SELECT IFNULL(COUNT(*), 0) FROM USERSUBJECT WHERE SUB_CODE = #{item.subCode})  
+	    </foreach>
+	</update> -->
+	<!-- 석차집계 -->
+	<select id="gradeRanks" parameterType="mul.cam.a.dto.SortParam" resultType="mul.cam.a.dto.GradeDto">
+		SELECT
+		  	 G.SUB_CODE, G.EDU_CODE, G.SUB_NAME, I.NAME, G.CLASS_GRADE, G.STUDENT_ID, G.STUDENT_GRADE,
+		    (DENSE_RANK() OVER (PARTITION BY SUB_CODE ORDER BY STUDENT_GRADE DESC))as student_ranks,
+		    G.SUB_TOTAL
+		FROM 
+		GRADE G INNER JOIN SUBJECT S
+			ON G.SUB_CODE = S.SUB_CODE
+				INNER JOIN USER I
+					ON G.STUDENT_ID = I.ID
+		WHERE G.SUB_CODE=#{subCode} AND S.EDUCATOR_NAME=#{educatorName}
+		<if test="choice != null and choice != '' ">
+			<if test="choice == 'name'">
+				ORDER BY I.NAME ASC;
+			</if>
+			<if test="choice == 'rank'">
+				ORDER BY student_ranks ASC;
+			</if>
+		</if>
+	</select>
+	
+	<!-- 성적수정 -->
+	<update id="gradeUpdate" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" separator=";">
+		UPDATE GRADE
+		SET STUDENT_GRADE=#{item.studentGrade}, SUB_TOTAL=(SELECT IFNULL(COUNT(*), 0) FROM USERSUBJECT WHERE SUB_CODE = #{item.subCode})
+		WHERE STUDENT_ID=#{item.studentId} AND SUB_CODE=#{item.subCode}
+		</foreach>
+	</update>
+</mapper>

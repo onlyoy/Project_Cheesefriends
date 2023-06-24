@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	
+<mapper namespace="mul.cam.a.dao.TaskDao">
+<!--  수업 자료 목록 가져오기 -->
+<select id="taskList" parameterType="mul.cam.a.dto.ListParam" resultType="mul.cam.a.dto.TaskDto">
+	SELECT *
+	FROM task
+	WHERE 1=1
+	<if test="choice != null and choice != ''">
+		<if test="choice == 'subject'">
+ 			AND subject =#{search}
+	 	</if>
+	 	<if test="choice == 'title'">
+	 		AND title LIKE CONCAT("%", #{search}, "%")
+	 	</if>
+	 	<if test="choice == 'content'">
+	 		AND content LIKE CONCAT("%", #{search}, "%")
+	 	</if>
+	</if>
+		ORDER BY regdate DESC
+		LIMIT #{start}, 10
+</select>
+
+<!-- 글의 총수 -->
+<select id="getAllTask" parameterType="mul.cam.a.dto.ListParam" resultType="java.lang.Integer">
+	
+	select ifnull(count(*), 0)
+	from task
+</select>
+
+<!--  과제 제출 글쓰기 -->
+<insert id="writeTask" parameterType="mul.cam.a.dto.TaskDto">
+	INSERT INTO task(subject, title, writer, content, regdate, filename)
+	VALUES( #{subject}, #{title}, #{writer}, #{content}, now(), #{filename} )
+</insert>
+
+<!-- 과제 제출 상세 -->
+<select id="getTask" parameterType="Integer" resultType="mul.cam.a.dto.TaskDto">
+	SELECT seq, subject, title, writer, content, regdate, filename
+	FROM task
+	WHERE seq=#{seq}
+</select>
+
+</mapper>

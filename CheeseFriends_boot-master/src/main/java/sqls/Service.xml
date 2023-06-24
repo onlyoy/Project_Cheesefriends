@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mul.cam.a.dao.ServiceDao">
+<!-- 고객센터 목록 가져오기 -->
+<select id="serviceList" parameterType="mul.cam.a.dto.ListParam" resultType="mul.cam.a.dto.ServiceDto">
+	SELECT *
+	FROM service
+	WHERE 1=1
+	<if test="choice != null and choice != ''">
+		<if test="choice == 'category'">
+ 			AND subject =#{search}
+	 	</if>
+	 	<if test="choice == 'title'">
+	 		AND title LIKE CONCAT("%", #{search}, "%")
+	 	</if>
+	 	<if test="choice == 'content'">
+	 		AND content LIKE CONCAT("%", #{search}, "%")
+	 	</if>
+	</if>
+		ORDER BY regdate DESC
+		LIMIT #{start}, 15
+
+</select>
+
+<!-- 글의 총수 -->
+<select id="getAllService" parameterType="mul.cam.a.dto.ListParam" resultType="java.lang.Integer">
+	
+	select ifnull(count(*), 0)
+	from service
+</select>
+
+
+	
+<!-- 카테고리별 글의 총수 -->
+<select id="getAllCategoryService" parameterType="mul.cam.a.dto.ListParam" resultType="java.lang.Integer">
+	select count(*)
+	from service
+	where category = #{category}
+</select>
+
+<!-- 카테고리 별 목록 가져오는 문 -->
+<select id="getCategorylist" parameterType="String" resultType="mul.cam.a.dto.ServiceDto">
+	select *
+	from service
+	where topic = #{category}	
+</select>
+
+
+<!-- 고객센터 글쓰기 -->
+<insert id="writeService" parameterType="mul.cam.a.dto.ServiceDto">
+	INSERT INTO service (topic, title, writer, content, regdate)
+	VALUES( #{topic}, #{title}, #{writer}, #{content}, now() )
+</insert>
+
+<!-- 고객센터 상세 -->
+<select id="getService" parameterType="Integer" resultType="mul.cam.a.dto.ServiceDto">
+	SELECT seq, topic, title, writer, content, regdate
+	FROM service
+	WHERE seq=#{seq}
+</select>
+
+<!-- 답글 수정 -->
+<update id="answerUpService">
+	update service
+	set step=step+1
+	where ref=(select ref from (select ref from qna a where seq=#{seq}) A)
+		and step>(select step from (select step from qna b where seq=#{seq}) B)
+</update>
+
+<!-- 답글 추가 -->
+<insert id="answerInService">
+	insert into service(topic, writer, ref, step, depth, title, content, regdate)
+	values(#{topic}, #{writer}, (select ref from service a where seq=#{seq}),
+				  (select step from service b where seq=#{seq})+1,
+				  (select depth from service c where seq=#{seq})+1,
+			#{title}, #{content}, now())
+</insert>
+</mapper>

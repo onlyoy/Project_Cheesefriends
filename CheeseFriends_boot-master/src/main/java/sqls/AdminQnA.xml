@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	
+<mapper namespace="mul.cam.a.dao.AdminQnaDao">
+
+	<!-- 문의리스트 가져오기 -->
+	 <select id="getQnaList" parameterType="mul.cam.a.dto.ListParam" resultType="mul.cam.a.dto.AdminQuestionDto">
+		SELECT *
+		FROM SERVICE
+		WHERE 1=1
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+			<if test="choice == 'id'">
+	 			AND WRITER =#{search}
+		 	</if>
+		 	<if test="choice == 'title'">
+		 		AND TITLE LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'topic'">
+		 		AND TOPIC LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		</if>
+		LIMIT #{start}, #{end}
+	</select> 
+	
+	<!-- 문의 총 수 가져오기 -->
+	 <select id="getAllQna" parameterType="mul.cam.a.dto.ListParam" resultType="Integer">
+		SELECT IFNULL(COUNT(*), 0)
+		FROM SERVICE
+		WHERE 1=1
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+		 	<if test="choice == 'id'">
+	 			AND WRITER =#{search}
+		 	</if>
+		 	<if test="choice == 'title'">
+		 		AND TITLE LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'topic'">
+		 		AND TOPIC LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 </if>
+	</select>
+	
+	<!-- 문의데이터 가져오기 -->
+	<select id="getQna" parameterType="Integer" resultType="mul.cam.a.dto.AdminQuestionDto">
+		SELECT *
+		FROM SERVICE
+		WHERE SEQ=#{seq}
+	</select>
+	
+	<!-- 답변데이터 가져오기 -->
+	<select id="getAnswer" parameterType="Integer" resultType="mul.cam.a.dto.AdminAnswerDto">
+		SELECT *
+		FROM QNAREPLY
+		WHERE GET_QNA_SEQ=#{getQnaSeq}
+	</select>
+	
+	<!-- 답변작성 -->
+	<insert id="answerWrite" parameterType="mul.cam.a.dto.AdminAnswerDto">
+		INSERT INTO QNAREPLY(GET_QNA_SEQ, TOPIC, TITLE, WRITER, CONTENT, REGDATE)
+		VALUES(#{getQnaSeq}, #{topic}, #{title}, #{writer}, #{content}, now());
+	</insert>
+	
+	<!-- 답변작성 시 답변상태 변경 -->
+	<update id="answerStatus" parameterType="Integer">
+		UPDATE SERVICE
+		SET REPLY=1
+		WHERE SEQ=#{seq}
+	</update>
+	
+	<!-- 답변수정 -->
+	<update id="answerUpdate" parameterType="mul.cam.a.dto.AdminAnswerDto">
+		UPDATE QNAREPLY
+		SET TITLE=#{title}, CONTENT=#{content}, WRITER=#{writer}
+		WHERE GET_QNA_SEQ=#{getQnaSeq}
+	</update>
+</mapper>

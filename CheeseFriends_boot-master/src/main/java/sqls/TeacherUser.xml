@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mul.cam.a.dao.TeacherUserDao">
+	
+	<!-- 교사리스트 가져오기 -->
+	<select id="getTeacherList" parameterType="mul.cam.a.dto.ListParam" resultType="mul.cam.a.dto.TeacherUserDto">
+		SELECT E.EDU_CODE, E.EDU_NAME,
+			   I.ID, I.NAME,
+			   I.EMAIL, I.PHONE, I.AUTH
+		FROM
+		USER I INNER JOIN USEREDU UE
+			ON I.ID = UE.USER_ID
+				INNER JOIN EDUCATION E
+					ON UE.EDU_CODE = E.EDU_CODE
+		WHERE 1=1 AND I.AUTH IN ("teacher", "main")
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+			<if test="choice == 'eduCode'">
+	 			AND E.EDU_CODE =#{search}
+		 	</if>
+		 	<if test="choice == 'eduName'">
+		 		AND E.EDU_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'id'">
+		 		AND I.ID =#{search}
+		 	</if>
+		</if>
+		LIMIT #{start}, #{end}
+	</select>
+	
+	<!-- 교사 총인원 가져오기 -->
+	<select id="getAllTeacher" parameterType="mul.cam.a.dto.ListParam" resultType="Integer">
+		SELECT IFNULL(COUNT(*), 0)
+		FROM
+		USER I INNER JOIN USEREDU UE
+			ON I.ID = UE.USER_ID
+				INNER JOIN EDUCATION E
+					ON UE.EDU_CODE = E.EDU_CODE
+		WHERE I.AUTH="teacher"
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+		 	<if test="choice == 'eduCode'">
+	 			AND E.EDU_CODE =#{search}
+		 	</if>
+		 	<if test="choice == 'eduName'">
+		 		AND E.EDU_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'id'">
+		 		AND I.ID =#{search}
+		 	</if>
+		 </if>
+	</select>
+	
+	<!-- 교사 데이터 가져오기 -->
+	<select id="getTeacher" parameterType="String" resultType="mul.cam.a.dto.TeacherUserDto">
+		SELECT UE.EDU_CODE, E.EDU_NAME, 
+			   I.ID, I.NAME,
+			   I.EMAIL, I.PHONE, I.AUTH
+		FROM
+		USER I INNER JOIN USEREDU UE
+			ON I.ID = UE.USER_ID
+				INNER JOIN EDUCATION E
+					ON UE.EDU_CODE = E.EDU_CODE
+		WHERE I.ID=#{id}
+	</select>
+	
+	<!-- 교사 담당과목 가져오기 -->
+	<select id="getTeacherSubList" parameterType="String" resultType="mul.cam.a.dto.TeacherUserDto">
+		SELECT SUB_CODE, SUB_NAME
+		FROM SUBJECT
+		WHERE EDUCATOR_NAME=#{id}
+	</select>
+	
+	<!-- 교사 정보 수정 -->
+	<update id="teacherUpdate" parameterType="mul.cam.a.dto.TeacherUserDto">
+		UPDATE USER
+		SET NAME=#{name}, EMAIL=#{email}, PHONE=#{phone}
+		WHERE ID=#{id}
+	</update>
+	
+	<!-- 교사 정보 삭제 -->
+	<delete id="teacherDelete" parameterType="String">
+		DELETE FROM USER
+		WHERE ID=#{id}
+	</delete>
+</mapper>

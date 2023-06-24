@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mul.cam.a.dao.EducationDao">
+
+	<!-- 교육기관등록  -->
+	<insert id="eduAdd" parameterType="mul.cam.a.dto.EducationDto">
+		INSERT INTO EDUCATION(EDU_CODE, EDU_NAME, EDU_ADDRESS, EDU_PHONE)
+		VALUES(#{eduCode}, #{eduName}, #{eduAddress}, #{eduPhone})
+	</insert>
+	
+	<!-- 교육기관등록 시 메인계정 생성  -->
+	<insert id="eduAddAdmain" parameterType="mul.cam.a.dto.UserDto">
+		INSERT INTO USER(ID, PASSWORD, NAME, ADDRESS, PHONE, AUTH)
+		VALUES(#{id}, #{password}, #{name}, #{address}, #{phone}, 'main')
+	</insert>
+	<!-- 교육기관 등록 시 useredu에도 추가 -->
+	<insert id="userEduAdd" parameterType="mul.cam.a.dto.EducationDto">
+		INSERT INTO USEREDU(USER_ID, EDU_CODE)
+		VALUES(#{id}, #{eduCode})
+	</insert>
+	
+	<!-- 교육기관코드 중복체크 -->
+	<select id="eduCodeCheck" parameterType="String" resultType="Integer">
+		SELECT COUNT(*)
+		FROM EDUCATION
+		WHERE EDU_CODE=#{eduCode}
+	</select>
+	
+	<!-- 이미 등록된 교육기관 중복체크 -->
+	<select id="eduDuplicateCheck" parameterType="mul.cam.a.dto.EducationDto" resultType="Integer">
+		SELECT COUNT(*)
+		FROM EDUCATION
+		WHERE EDU_ADDRESS=#{eduAddress} AND EDU_NAME=#{eduName}
+	</select>
+	
+	<!-- 교육기관리스트 가져오기 -->
+	<select id="getEduList" parameterType="mul.cam.a.dto.ListParam" resultType="mul.cam.a.dto.EducationDto">
+		SELECT E.EDU_CODE, E.EDU_NAME, E.EDU_PHONE,
+			   E.EDU_ADDRESS, I.ADDRESS,
+			   I.ID
+		FROM
+		EDUCATION E INNER JOIN USER I
+		ON E.EDU_ADDRESS = I.ADDRESS
+		WHERE 1=1
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+			<if test="choice == 'eduCode'">
+	 			AND EDU_CODE =#{search}
+		 	</if>
+		 	<if test="choice == 'eduName'">
+		 		AND EDU_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'eduAddress'">
+		 		AND EDU_ADDRESS LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		</if>
+		LIMIT #{start}, #{end}
+	</select>
+	
+	<!-- 교육기관 총 수 가져오기 -->
+	<select id="getAllEdu" parameterType="mul.cam.a.dto.ListParam" resultType="Integer">
+		SELECT IFNULL(COUNT(*), 0)
+		FROM EDUCATION
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+		 	<if test="choice == 'eduCode'">
+		 		WHERE EDU_CODE =#{search}
+		 	</if>
+		 	<if test="choice == 'eduName'">
+		 		WHERE EDU_NAME LIKE CONCAT('%', #{search}, '%')
+		 	</if>
+		 	<if test="choice == 'eduAddress'">
+		 		WHERE EDU_ADDRESS LIKE CONCAT('%', #{search}, '%')
+		 	</if>
+		 </if>
+	</select>
+	
+	<!-- 교육기관 데이터 가져오기 -->
+	<select id="getEdu" parameterType="String" resultType="mul.cam.a.dto.EducationDto">
+		SELECT EDU_NAME, EDU_ADDRESS, EDU_PHONE
+		FROM EDUCATION
+		WHERE EDU_CODE=#{eduCode}
+	</select>
+	
+	<!-- 교육기관 수정 -->
+	<update id="eduUpdate" parameterType="mul.cam.a.dto.EducationDto">
+		UPDATE EDUCATION E
+		INNER JOIN USER U ON E.EDU_ADDRESS = U.ADDRESS
+		SET 
+		  E.EDU_NAME=#{eduName}, 
+		  E.EDU_ADDRESS=#{eduAddress},
+		  E.EDU_PHONE=#{eduPhone},
+		  U.NAME=#{eduName},
+		  U.ADDRESS=#{eduAddress},
+		  U.PHONE=#{eduPhone}
+		WHERE E.EDU_CODE=#{eduCode} AND U.ID=#{id}
+	</update>
+	
+	<!-- 교육기관 삭제 -->
+	<delete id="eduDelete" parameterType="mul.cam.a.dto.EducationDto">
+		DELETE EDUCATION, USER
+		FROM EDUCATION INNER JOIN USER ON EDUCATION.EDU_ADDRESS = USER.ADDRESS
+		WHERE EDUCATION.EDU_CODE=#{eduCode} AND USER.ID=#{id};
+	</delete>
+	<!-- 메인페이지 유저 eduCode 가져오기 -->
+	<select id="homeEduCode" parameterType="String" resultType="mul.cam.a.dto.EducationDto">
+		SELECT UE.EDU_CODE, E.EDU_NAME
+		FROM
+		USEREDU UE INNER JOIN EDUCATION E
+			ON UE.EDU_CODE = E.EDU_CODE
+		WHERE USER_ID=#{id}
+	</select>
+	<!-- 메인화면에서 안읽은 쪽지 표시 -->
+	<select id="unreducedMail" parameterType="String" resultType="Integer">
+		SELECT IFNULL(COUNT(*), 0)
+		FROM MAIL
+		WHERE RECEIVER=#{id} AND READCOUNT=0
+	</select>
+</mapper>

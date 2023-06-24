@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mul.cam.a.dao.SubjectDao">
+	
+	<!-- 과목리스트 가져오기 -->
+	<select id="getSubList" parameterType="mul.cam.a.dto.ListParam" resultType="mul.cam.a.dto.SubjectDto">
+		SELECT S.EDU_CODE, E.EDU_NAME, 
+			   S.SUB_CODE, S.SUB_NAME, S.CLASS_GRADE,
+			   S.EDUCATOR_NAME, I.NAME
+		FROM
+		SUBJECT S INNER JOIN EDUCATION E
+			ON S.EDU_CODE = E.EDU_CODE
+				INNER JOIN USER I
+				ON S.EDUCATOR_NAME = I.ID
+		WHERE 1=1
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+			<if test="choice == 'eduCode'">
+	 			AND S.EDU_CODE =#{search}
+		 	</if>
+		 	<if test="choice == 'eduName'">
+		 		AND E.EDU_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'subCode'">
+		 		AND S.SUB_CODE LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'subName'">
+		 		AND S.SUB_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'id'">
+		 		AND S.EDUCATOR_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		</if>
+		LIMIT #{start}, #{end}
+	</select>
+	
+	<!-- 과목 총 수 가져오기 -->
+	<select id="getAllSub" parameterType="mul.cam.a.dto.ListParam" resultType="Integer">
+		SELECT IFNULL(COUNT(*), 0)
+		FROM
+		SUBJECT S INNER JOIN EDUCATION E
+			ON S.EDU_CODE = E.EDU_CODE
+				INNER JOIN USER I
+				ON S.EDUCATOR_NAME = I.ID
+		<if test="choice != null and choice != '' and search != null and search != '' ">
+		 	<if test="choice == 'eduCode'">
+	 			AND S.EDU_CODE =#{search}
+		 	</if>
+		 	<if test="choice == 'eduName'">
+		 		AND E.EDU_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'subCode'">
+		 		AND S.SUB_CODE LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'subName'">
+		 		AND S.SUB_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 	<if test="choice == 'id'">
+		 		AND S.EDUCATOR_NAME LIKE CONCAT("%", #{search}, "%")
+		 	</if>
+		 </if>
+	</select>
+	
+	<!-- 과목 데이터 가져오기 -->
+	<select id="getSub" parameterType="String" resultType="mul.cam.a.dto.SubjectDto">
+		SELECT S.EDU_CODE, E.EDU_NAME, 
+			   S.SUB_CODE, S.SUB_NAME, S.CLASS_GRADE,
+			   S.EDUCATOR_NAME
+		FROM
+		SUBJECT S INNER JOIN EDUCATION E
+			ON S.EDU_CODE = E.EDU_CODE
+				INNER JOIN USER I
+				ON S.EDUCATOR_NAME = I.ID
+		WHERE S.SUB_CODE=#{subCode}
+	</select>
+	
+	<!-- 과목 수정 -->
+	<update id="subUpdate" parameterType="mul.cam.a.dto.SubjectDto">
+		UPDATE SUBJECT S
+		INNER JOIN TIMETABLE T ON S.EDUCATOR_NAME = T.EDUCATOR_NAME
+			SET
+			S.SUB_NAME=#{subName},
+			S.EDUCATOR_NAME=#{educatorName},
+			S.CLASS_GRADE=#{classGrade},
+			T.EDUCATOR_NAME=#{educatorName},
+			T.CLASS_GRADE=#{classGrade}
+		WHERE S.SUB_CODE=#{subCode}
+	</update>
+	
+	<!-- 과목 삭제 -->
+	<delete id="subDelete" parameterType="String">
+		DELETE FROM SUBJECT
+		WHERE SUB_CODE=#{subCode}
+	</delete>
+	
+	<!-- 아이디리스트 가져오기 -->
+	<select id="getIdList" parameterType="String" resultType="mul.cam.a.dto.UserDto">
+		SELECT ID
+		FROM USER
+		WHERE AUTH=#{auth}
+	</select>
+	<!-- 과목추가 -->
+	<insert id="subAdd" parameterType="mul.cam.a.dto.SubjectDto">
+		<selectKey keyProperty="eduCode" order="BEFORE" resultType="String"> SELECT EDU_CODE FROM USEREDU WHERE USER_ID=#{educatorName} </selectKey>
+		INSERT INTO SUBJECT(SUB_CODE, EDU_CODE, SUB_NAME, EDUCATOR_NAME, CLASS_GRADE)
+		VALUES(#{subCode}, #{eduCode}, #{subName}, #{educatorName}, #{classGrade})
+	</insert>
+	<!-- 선생님 과목리스트 가져오기 -->
+	<select id="getTSubList" parameterType="String" resultType="mul.cam.a.dto.SubjectDto">
+		SELECT S.SUB_CODE, S.EDU_CODE, S.SUB_NAME, S.EDUCATOR_NAME, S.CLASS_GRADE, I.NAME
+		FROM
+		SUBJECT S INNER JOIN USER I
+			ON S.EDUCATOR_NAME = I.ID
+		WHERE EDUCATOR_NAME=#{educatorName}
+	</select>
+	
+	<!-- 선생님 과목 데이터 가져오기 -->
+	<select id="getTSub" parameterType="String" resultType="mul.cam.a.dto.SubjectDto">
+		SELECT *
+		FROM
+		SUBJECT
+		WHERE S.SUB_CODE=#{subCode}
+	</select>
+	<!-- 과목코드 중복확인 -->
+	<select id="subCodeCheck" parameterType="String" resultType="Integer">
+		SELECT COUNT(*)
+		FROM SUBJECT
+		WHERE SUB_CODE=#{subCode}
+	</select>
+	<!-- 등록된 과목인지 확인 -->
+	<select id="subDuplicateCheck" parameterType="mul.cam.a.dto.SubjectDto" resultType="Integer">
+		SELECT COUNT(*)
+		FROM SUBJECT
+		WHERE SUB_NAME=#{subName} AND CLASS_GRADE=#{classGrade} AND EDUCATOR_NAME=#{educatorName}
+	</select>
+	
+</mapper>
